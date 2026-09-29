@@ -1,0 +1,7 @@
+node_modules/
+dist/
+artifacts/
+releases/
+.env*
+.DS_Store
+*.zip

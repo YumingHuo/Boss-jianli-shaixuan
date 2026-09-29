@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "识才 · BOSS 招聘助手",
+  "version": "0.1.9",
+  "description": "读取正常浏览的候选人页面，按岗位辅助分析，供内部招聘人员复核。",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "storage",
+    "alarms",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://www.zhipin.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "打开识才工作台"
+  },
+  "options_page": "index.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.zhipin.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'"
+  }
+}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>简历滚动读取回归验证</title>
+<style>body{font:16px system-ui;margin:24px}iframe{width:600px;height:200px;border:1px solid #aaa}img{width:300px;border:1px solid #ccc}pre{white-space:pre-wrap}</style>
+<h1>小窗口与滚动后替换画布</h1>
+<p>仅使用人工测试文字，模拟 200 像素高的简历窗口；滚动中继续加载底部。</p>
+<iframe title="人工简历"></iframe><p><button>开始验证</button></p><pre id="result">等待验证</pre><div id="images"></div>
+<script type="module">
+import { prepareResumeParts } from '/src/content/online-resume.ts';
+const frame = document.querySelector('iframe');
+frame.srcdoc = '<style>body{margin:0}.paper{height:200px;overflow:auto;scroll-behavior:smooth}.space{height:1200px;position:relative}canvas{position:absolute;left:0}</style><div class="paper"><div class="space"><canvas width="600" height="200"></canvas></div></div>';
+frame.addEventListener('load', () => {
+  // 仅在本地测试文档中模拟生产选择器的 URL，不访问 BOSS 或任何模型接口。
+  Object.defineProperty(frame, 'src', { value: 'https://www.zhipin.com/web/frame/c-resume/' });
+  const doc = frame.contentDocument, scroller = doc.querySelector('.paper'), canvas = doc.querySelector('canvas');
+  let extended = false;
+  const paint = () => {
+    const top = scroller.scrollTop;
+    if (top >= 400 && !extended) { extended = true; doc.querySelector('.space').style.height = '1800px'; }
+    canvas.style.top = top + 'px';
+    const ctx = canvas.getContext('2d'); ctx.fillStyle = top === 0 ? '#d03030' : top >= 1600 ? '#008050' : '#5266c4'; ctx.fillRect(0, 0, 600, 200);
+    ctx.fillStyle = 'white'; ctx.font = '20px sans-serif';
+    ctx.fillText(top === 0 ? '第一段：项目经历' : top >= 1600 ? '最后一段：教育经历' : '中间正文：' + top, 20, 40);
+    ctx.fillText('人工测试材料；当前画布会被滚动事件替换。', 20, 85);
+    ctx.fillText('已保存的第一段应保持红色，最后一段为绿色。', 20, 130);
+  };
+  scroller.addEventListener('scroll', paint); paint();
+  document.querySelector('button').onclick = async () => {
+    const output = document.querySelector('#result');
+    try {
+      const capture = await prepareResumeParts(document, () => {}, text => { output.textContent = text; });
+      capture.verify();
+      const parts = capture.segments.flat().filter(p => 'image' in p);
+      const first = parts[0].image, last = parts.at(-1).image;
+      document.querySelector('#images').replaceChildren(...[first, last].map((src, i) => { const img = new Image(); img.src = src; img.alt = i ? '已保存的最后一段' : '已保存的第一段'; return img; }));
+      output.textContent = JSON.stringify({ 结果: scroller.scrollTop === 1600 && first !== last ? '通过' : '失败', 段数: capture.segments.length, 图片数: parts.length, 实际滚动位置: scroller.scrollTop, 简历实际高度: scroller.scrollHeight, 第一段与最后一段不同: first !== last, 原有平滑滚动样式: getComputedStyle(scroller).scrollBehavior }, null, 2);
+    } catch (error) { output.textContent = '失败：' + error.message; }
+  };
+});
+</script></html>
